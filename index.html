@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>言語聴覚士 国家試験マスター</title>
+    <style>
+        /* デザイン設定 (CSS) */
+        :root {
+            --primary-color: #0056b3;
+            --accent-color: #e7f1ff;
+            --text-color: #333;
+            --bg-color: #f4f4f9;
+        }
+
+        body {
+            font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: white;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: var(--primary-color);
+        }
+
+        /* ホーム画面 */
+        .menu-grid {
+            display: grid;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .menu-btn {
+            background: white;
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .menu-btn:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        /* クイズ画面 */
+        #quiz-section, #result-section {
+            display: none;
+            flex-grow: 1;
+            flex-direction: column;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #ddd;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary-color);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .question-box {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        .question-img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            display: none; /* 画像がない場合は非表示 */
+        }
+
+        .options-grid {
+            display: grid;
+            gap: 10px;
+        }
+
+        .option-btn {
+            padding: 15px;
+            border: 1px solid #ccc;
+            background: white;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.2s;
+            text-align: left;
+        }
+
+        .option-btn:hover {
+            background: var(--accent-color);
+        }
+
+        .option-btn.correct {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+
+        .option-btn.wrong {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+
+        /* 結果画面 */
+        .result-score {
+            font-size: 2rem;
+            text-align: center;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+
+        .back-btn {
+            margin-top: auto;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 15px;
+            font-size: 1.2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        /* フッター */
+        footer {
+            text-align: center;
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 20px;
+            padding-top: 10px;
+            border-top: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="home-section">
+        <h1>言語聴覚士<br>国試マスター</h1>
+        <p style="text-align: center;">セクションを選択してください</p>
+        <div class="menu-grid" id="menu-list">
+            </div>
+    </div>
+
+    <div id="quiz-section">
+        <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+        <div class="question-box">
+            <img id="q-image" src="" alt="問題画像" class="question-img">
+            <div id="q-text">ここに問題文が表示されます</div>
+        </div>
+        <div class="options-grid" id="options-list">
+            </div>
+    </div>
+
+    <div id="result-section">
+        <h2>結果発表</h2>
+        <div class="result-score" id="score-display"></div>
+        <div id="feedback-msg" style="text-align: center; margin-bottom: 20px;"></div>
+        <button class="back-btn" onclick="goHome()">ホームに戻る</button>
+    </div>
+
+    <footer>
+        &copy; 2024 ST Study App
+    </footer>
+</div>
+
+<script>
+    // === 問題データ ===
+    // ここに将来的に問題を追加していきます。
+    // image: "画像のURL" とすると画像が表示されます。nullならテキストのみ。
+    const quizData = {
+        "psychoacoustics": {
+            title: "音響心理学",
+            questions: [
+                { q: "ヒトの可聴域の周波数範囲はおおよそどれか。", options: ["20〜20,000Hz", "100〜10,000Hz", "1,000〜4,000Hz", "500〜2,000Hz"], a: "20〜20,000Hz", img: null },
+                { q: "音の高さ（ピッチ）の知覚に最も影響する物理量はどれか。", options: ["周波数", "振幅", "位相", "倍音構成"], a: "周波数", img: null },
+                { q: "等ラウドネスレベル曲線において、単位として用いられるのはどれか。", options: ["phon（ホン）", "sone（ソーン）", "mel（メル）", "dB（デシベル）"], a: "phon（ホン）", img: null },
+                { q: "カクテルパーティー効果に関連が深いのはどれか。", options: ["両耳聴効果", "マスキング効果", "ドップラー効果", "ハース効果"], a: "両耳聴効果", img: null },
+                { q: "音の強さが10倍になると、音圧レベルは何dB上昇するか。", options: ["10dB", "20dB", "3dB", "6dB"], a: "10dB", img: null },
+                { q: "1000Hz、40dB SPLの純音のラウドネスレベルはいくつか。", options: ["40phon", "1sone", "1000mel", "40dB HL"], a: "40phon", img: null },
+                { q: "低い周波数の音が、高い周波数の音を妨害しやすい現象を何と呼ぶか。", options: ["上行性マスキング", "下行性マスキング", "中心周波数", "臨界帯域"], a: "上行性マスキング", img: null },
+                { q: "音の3要素に含まれないのはどれか。", options: ["速度", "大きさ", "高さ", "音色"], a: "速度", img: null },
+                { q: "ウェーバーの法則が成り立つとき、弁別閾は刺激量に対してどうなるか。", options: ["一定の比率になる", "一定の値になる", "無関係になる", "対数に比例する"], a: "一定の比率になる", img: null },
+                { q: "両耳間時間差（ITD）が音源定位に有効なのはどの周波数帯域か。", options: ["低周波数域", "中周波数域", "高周波数域", "全周波数域"], a: "低周波数域", img: null }
+            ]
+        },
+        "anatomy": {
+            title: "解剖学",
+            questions: [
+                // 画像問題の例：本来は画像のURLを指定します。ここではプレースホルダーを使用。
+                { q: "（画像問題）矢印で示された部位（喉頭蓋）の名称はどれか。", options: ["喉頭蓋", "甲状軟骨", "披裂軟骨", "輪状軟骨"], a: "喉頭蓋", img: "https://placehold.co/600x400?text=Larynx+Image" },
+                { q: "ブローカ野が存在するのは大脳のどの葉か。", options: ["前頭葉", "側頭葉", "頭頂葉", "後頭葉"], a: "前頭葉", img: null },
+                { q: "聴覚野が存在するのは大脳のどの回か。", options: ["ヘシュル横回", "中心前回", "中心後回", "角回"], a: "ヘシュル横回", img: null },
+                { q: "中耳に含まれる耳小骨で、鼓膜に接しているのはどれか。", options: ["ツチ骨", "キヌタ骨", "アブミ骨", "蝸牛"], a: "ツチ骨", img: null },
+                { q: "顔面神経が支配する筋はどれか。", options: ["口輪筋", "咬筋", "側頭筋", "外側翼突筋"], a: "口輪筋", img: null },
+                { q: "誤嚥を防ぐために喉頭を前上方に挙上させる主な筋群はどれか。", options: ["舌骨上筋群", "舌骨下筋群", "咽頭収縮筋", "胸鎖乳突筋"], a: "舌骨上筋群", img: null },
+                { q: "脳幹に含まれないのはどれか。", options: ["小脳", "中脳", "橋", "延髄"], a: "小脳", img: null },
+                { q: "第X脳神経の名称はどれか。", options: ["迷走神経", "舌咽神経", "副神経", "舌下神経"], a: "迷走神経", img: null },
+                { q: "声帯ヒダの開大を行う唯一の筋はどれか。", options: ["後輪状披裂筋", "外側輪状披裂筋", "甲状披裂筋", "輪状甲状筋"], a: "後輪状披裂筋", img: null },
+                { q: "（画像問題）矢印で示された部位（海馬）の機能として正しいのはどれか。", options: ["記憶の形成", "運動の調整", "視覚情報の処理", "呼吸の調節"], a: "記憶の形成", img: "https://placehold.co/600x400?text=Brain+Hippocampus" }
+            ]
+        },
+        "diagnostics": {
+            title: "言語聴覚診断学",
+            questions: [
+                { q: "感度（Sensitivity）の説明として正しいのはどれか。", options: ["疾患がある人を正しく陽性と判定する割合", "疾患がない人を正しく陰性と判定する割合", "陽性と判定された人のうち実際に疾患がある割合", "陰性と判定された人のうち実際に疾患がない割合"], a: "疾患がある人を正しく陽性と判定する割合", img: null },
+                { q: "標準失語症検査（SLTA）に含まれない下位検査はどれか。", options: ["語の流暢性", "呼称", "復唱", "漢字単語の書取"], a: "語の流暢性", img: null },
+                { q: "WAB失語症検査で算出される係数はどれか。", options: ["AQ（失語指数）", "IQ（知能指数）", "DQ（発達指数）", "SQ（社会生活能力）"], a: "AQ（失語指数）", img: null },
+                { q: "聴力検査において、気導聴力は正常で骨導聴力も正常な場合はどれか。", options: ["正常聴力", "伝音難聴", "感音難聴", "混合難聴"], a: "正常聴力", img: null },
+                { q: "構音障害のスクリーニングに適さないのはどれか。", options: ["RCPM", "パタカ検査", "会話明瞭度評価", "口腔器官の診察"], a: "RCPM", img: null },
+                { q: "MMSE（Mini-Mental State Examination）の満点は何点か。", options: ["30点", "20点", "50点", "100点"], a: "30点", img: null },
+                { q: "半側空間無視の検査として用いられるのはどれか。", options: ["BIT行動性無視検査", "TMT", "FAB", "Raven色彩マトリックス"], a: "BIT行動性無視検査", img: null },
+                { q: "発声発語器官の検査において、軟口蓋の挙上を確認するための発声はどれか。", options: ["/a/", "/i/", "/u/", "/m/"], a: "/a/", img: null },
+                { q: "嚥下造影検査（VF）で評価できないのはどれか。", options: ["咽頭の知覚", "誤嚥の有無", "咽頭残留", "食道入口部の開大"], a: "咽頭の知覚", img: null },
+                { q: "（画像問題）このオージオグラム（気導・骨導共に低下、Gapなし）が示す難聴型はどれか。", options: ["感音難聴", "伝音難聴", "混合難聴", "機能性難聴"], a: "感音難聴", img: "https://placehold.co/600x400?text=Audiogram+SNHL" }
+            ]
+        }
+    };
+
+    // === アプリケーションロジック ===
+    let currentSection = null;
+    let currentQuestions = [];
+    let currentIndex = 0;
+    let score = 0;
+    let isAnswering = false;
+
+    // 初期化：ホーム画面にボタンを生成
+    function init() {
+        const menuList = document.getElementById('menu-list');
+        for (const key in quizData) {
+            const btn = document.createElement('button');
+            btn.className = 'menu-btn';
+            btn.innerText = quizData[key].title;
+            btn.onclick = () => startQuiz(key);
+            menuList.appendChild(btn);
+        }
+    }
+
+    // クイズ開始
+    function startQuiz(sectionKey) {
+        currentSection = sectionKey;
+        currentQuestions = [...quizData[sectionKey].questions];
+        // 問題をシャッフルしたい場合は以下のコメントアウトを外す
+        // currentQuestions.sort(() => Math.random() - 0.5);
+        
+        currentIndex = 0;
+        score = 0;
+
+        document.getElementById('home-section').style.display = 'none';
+        document.getElementById('result-section').style.display = 'none';
+        document.getElementById('quiz-section').style.display = 'flex';
+        
+        loadQuestion();
+    }
+
+    // 問題の読み込み
+    function loadQuestion() {
+        isAnswering = true;
+        const qData = currentQuestions[currentIndex];
+        
+        // 進捗バー更新
+        const progressPercent = ((currentIndex) / currentQuestions.length) * 100;
+        document.getElementById('progress').style.width = `${progressPercent}%`;
+
+        // テキスト更新
+        document.getElementById('q-text').innerText = `Q${currentIndex + 1}. ${qData.q}`;
+
+        // 画像処理
+        const imgElem = document.getElementById('q-image');
+        if (qData.img) {
+            imgElem.src = qData.img;
+            imgElem.style.display = 'block';
+        } else {
+            imgElem.style.display = 'none';
+        }
+
+        // 選択肢生成
+        const optionsDiv = document.getElementById('options-list');
+        optionsDiv.innerHTML = '';
+        
+        // 選択肢をシャッフルして表示
+        const shuffledOptions = [...qData.options].sort(() => Math.random() - 0.5);
+
+        shuffledOptions.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = opt;
+            btn.onclick = () => checkAnswer(btn, opt, qData.a);
+            optionsDiv.appendChild(btn);
+        });
+    }
+
+    // 解答判定
+    function checkAnswer(btn, selected, correct) {
+        if (!isAnswering) return; // 連打防止
+        isAnswering = false;
+
+        const allBtns = document.querySelectorAll('.option-btn');
+
+        if (selected === correct) {
+            btn.classList.add('correct');
+            score++;
+        } else {
+            btn.classList.add('wrong');
+            // 正解のボタンを教えてあげる
+            allBtns.forEach(b => {
+                if (b.innerText === correct) {
+                    b.classList.add('correct');
+                }
+            });
+        }
+
+        // 次の問題へ（少し遅らせる）
+        setTimeout(() => {
+            currentIndex++;
+            if (currentIndex < currentQuestions.length) {
+                loadQuestion();
+            } else {
+                showResults();
+            }
+        }, 1000); // 1秒後に次の問題へ
+    }
+
+    // 結果表示
+    function showResults() {
+        document.getElementById('quiz-section').style.display = 'none';
+        document.getElementById('result-section').style.display = 'flex';
+
+        const percentage = Math.round((score / currentQuestions.length) * 100);
+        document.getElementById('score-display').innerText = `${score} / ${currentQuestions.length} 問正解`;
+        
+        const msgDiv = document.getElementById('feedback-msg');
+        if (percentage === 100) {
+            msgDiv.innerText = "素晴らしい！全問正解です！🎉";
+        } else if (percentage >= 80) {
+            msgDiv.innerText = "合格圏内です！その調子！👍";
+        } else {
+            msgDiv.innerText = "復習しましょう！伸び代があります💪";
+        }
+    }
+
+    // ホームに戻る
+    function goHome() {
+        document.getElementById('result-section').style.display = 'none';
+        document.getElementById('home-section').style.display = 'block';
+    }
+
+    // アプリ起動
+    init();
+
+</script>
+
+</body>
+</html>
