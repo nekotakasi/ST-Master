@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ST階層別分類マスター（自主学習用）</title>
+    <title>ST階層別分類マスター（履歴順＆削除機能付）</title>
     <style>
         :root {
             --primary: #2c3e50;
@@ -99,12 +99,23 @@
             text-align: center;
             transition: 0.2s;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            position: relative;
         }
 
         .menu-btn:hover {
             background: var(--secondary);
             color: white;
             transform: translateY(-2px);
+        }
+        
+        /* 新着バッジ的な演出（直近使用） */
+        .menu-btn.recent::after {
+            content: "●";
+            color: var(--correct);
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 0.8rem;
         }
 
         .section-title {
@@ -199,14 +210,7 @@
 
         .item-card:hover { transform: translateY(-2px); }
         .item-card.correct { transform: scale(0); opacity: 0; }
-        
-        /* 間違えたときのアニメーション */
-        .item-card.wrong { 
-            background: var(--wrong); 
-            color: white; 
-            border-color: var(--wrong); 
-            animation: shake 0.4s; 
-        }
+        .item-card.wrong { background: var(--wrong); color: white; border-color: var(--wrong); animation: shake 0.4s; }
 
         .progress-bar {
             background: #eee;
@@ -243,6 +247,13 @@
             margin-bottom: 10px;
             box-sizing: border-box;
         }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
         .btn-primary {
             background: var(--accent);
             color: white;
@@ -253,6 +264,7 @@
             cursor: pointer;
             width: 100%;
         }
+        
         .btn-danger {
             background: var(--wrong);
             color: white;
@@ -261,6 +273,16 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 0.8rem;
+        }
+
+        .btn-delete-section {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            flex: 1; /* ボタンを横並びにするため */
         }
 
         @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: 1; opacity: 1; } }
@@ -273,7 +295,7 @@
 <div class="container">
     <header>
         <button class="header-btn" id="back-btn" onclick="goBack()" style="visibility:hidden;">← 戻る</button>
-        <div class="header-title" id="header-title">ST分類マスター</div>
+        <div class="header-title" id="header-title">ST階層別分類マスター</div>
         <button class="header-btn" onclick="toggleEdit()">作問</button>
     </header>
 
@@ -311,23 +333,32 @@
     </div>
 
     <div id="screen-edit" class="screen">
-        <h2 class="section-title">問題の作成</h2>
+        <h2 class="section-title">問題の作成・編集</h2>
 
         <div class="form-group">
-            <label class="form-label">① 科目を選択または新規作成</label>
-            <select id="edit-subject-select" class="select-box" onchange="onEditSubjectChange()">
-                <option value="">-- 科目を選択 --</option>
-            </select>
+            <label class="form-label">① 科目を選択 / 新規作成 / 削除</label>
+            <div style="display:flex; gap:10px; margin-bottom:10px;">
+                <select id="edit-subject-select" class="select-box" style="margin-bottom:0;" onchange="onEditSubjectChange()">
+                    <option value="">-- 科目を選択 --</option>
+                </select>
+                <button id="btn-del-subject" class="btn-delete-section" style="display:none; max-width:80px;" onclick="deleteSelectedSubject()">削除</button>
+            </div>
+            
             <input type="text" id="edit-new-subject" class="input-box" placeholder="新しい科目名（例：解剖学）">
             <button class="btn-primary" onclick="addNewSubject()">科目を追加</button>
         </div>
 
         <div class="form-group" id="edit-title-group" style="display:none; border-left: 5px solid var(--accent);">
-            <label class="form-label">② タイトルを選択または新規作成</label>
+            <label class="form-label">② タイトルを選択 / 新規作成 / 削除</label>
             <p style="font-size:0.8rem; color:#666;">選択中の科目：<b id="edit-current-subject"></b></p>
-            <select id="edit-title-select" class="select-box" onchange="onEditTitleChange()">
-                <option value="">-- タイトルを選択 --</option>
-            </select>
+            
+            <div style="display:flex; gap:10px; margin-bottom:10px;">
+                <select id="edit-title-select" class="select-box" style="margin-bottom:0;" onchange="onEditTitleChange()">
+                    <option value="">-- タイトルを選択 --</option>
+                </select>
+                <button id="btn-del-title" class="btn-delete-section" style="display:none; max-width:80px;" onclick="deleteSelectedTitle()">削除</button>
+            </div>
+
             <input type="text" id="edit-new-title" class="input-box" placeholder="新しいタイトル（例：脳の機能）">
             <button class="btn-primary" onclick="addNewTitle()">タイトルを追加</button>
         </div>
@@ -364,13 +395,15 @@
     };
 
     let appData = {};
+    let accessLog = {}; // { "SubjectName": 12345678, "Subject__Title": 12345678 }
+
     let currentSubject = null;
     let currentTitle = null;
     
     // ゲーム用変数
     let activeCategory = null;
     let gameQueue = [];
-    let wrongQueue = []; // ここに間違えた問題が溜まります
+    let wrongQueue = [];
     let allItemsCount = 0;
     const CHUNK_SIZE = 6;
 
@@ -387,10 +420,21 @@
         } else {
             appData = JSON.parse(JSON.stringify(defaultData));
         }
+
+        // アクセス履歴の読み込み
+        const logJson = localStorage.getItem('st_access_log');
+        if (logJson) {
+            try { accessLog = JSON.parse(logJson); } catch(e) { accessLog = {}; }
+        }
     }
 
     function saveData() {
         localStorage.setItem('st_hier_data', JSON.stringify(appData));
+    }
+
+    function updateAccessLog(key) {
+        accessLog[key] = Date.now();
+        localStorage.setItem('st_access_log', JSON.stringify(accessLog));
     }
 
     // === 画面遷移 ===
@@ -416,40 +460,63 @@
         else goSubjects();
     }
 
-    // 1. 科目一覧
+    // 1. 科目一覧（履歴順ソート適用）
     function goSubjects() {
         currentSubject = null;
         currentTitle = null;
         const list = document.getElementById('subject-list');
         list.innerHTML = "";
         
-        Object.keys(appData).forEach(subj => {
+        // ソート処理
+        const sortedSubjects = Object.keys(appData).sort((a, b) => {
+            const timeA = accessLog[a] || 0;
+            const timeB = accessLog[b] || 0;
+            return timeB - timeA; // 降順（新しい順）
+        });
+
+        sortedSubjects.forEach(subj => {
             const btn = document.createElement('div');
             btn.className = 'menu-btn';
             btn.innerText = subj;
-            btn.onclick = () => goTitles(subj);
+            btn.onclick = () => {
+                updateAccessLog(subj); // アクセス日時更新
+                goTitles(subj);
+            };
             list.appendChild(btn);
         });
         showScreen('screen-subjects');
     }
 
-    // 2. タイトル一覧
+    // 2. タイトル一覧（履歴順ソート適用）
     function goTitles(subj) {
         currentSubject = subj;
         document.getElementById('selected-subject-name').innerText = subj;
         const list = document.getElementById('title-list');
         list.innerHTML = "";
         
-        const titles = appData[subj] || {};
-        if (Object.keys(titles).length === 0) {
+        const titlesObj = appData[subj] || {};
+        
+        if (Object.keys(titlesObj).length === 0) {
             list.innerHTML = "<p style='text-align:center; width:100%; color:#888;'>まだ問題がありません。<br>右上の「作問」から作成してください。</p>";
         }
 
-        Object.keys(titles).forEach(title => {
+        // ソート処理（キー: 科目名__タイトル名 で管理）
+        const sortedTitles = Object.keys(titlesObj).sort((a, b) => {
+            const keyA = `${subj}__${a}`;
+            const keyB = `${subj}__${b}`;
+            const timeA = accessLog[keyA] || 0;
+            const timeB = accessLog[keyB] || 0;
+            return timeB - timeA;
+        });
+
+        sortedTitles.forEach(title => {
             const btn = document.createElement('div');
             btn.className = 'menu-btn';
             btn.innerText = title;
-            btn.onclick = () => initGame(subj, title);
+            btn.onclick = () => {
+                updateAccessLog(`${subj}__${title}`); // アクセス日時更新
+                initGame(subj, title);
+            };
             list.appendChild(btn);
         });
         
@@ -469,13 +536,11 @@
             list.forEach(item => items.push({name: item, category: cat}));
         }
 
-        // 初期化：すべての問題をシャッフルしてセット
         gameQueue = shuffle(items);
-        wrongQueue = []; // 間違いリストをリセット
+        wrongQueue = [];
         allItemsCount = items.length;
         activeCategory = null;
 
-        // カテゴリボタン生成
         const catArea = document.getElementById('game-cats');
         catArea.innerHTML = "";
         Object.keys(problemSet).forEach(cat => {
@@ -530,7 +595,6 @@
         updateStatus();
     }
 
-    // ★重要：解答チェックロジック★
     function checkAnswer(item, el) {
         if (!activeCategory) {
             alert("先にカテゴリを選択してください");
@@ -538,30 +602,22 @@
         }
 
         if (item.category === activeCategory) {
-            // 正解の場合
             el.classList.add('correct');
             const activeBtn = document.querySelector('.cat-btn.active');
             activeBtn.classList.add('flash');
             setTimeout(() => activeBtn.classList.remove('flash'), 300);
 
-            // アニメーション後に消す
             setTimeout(() => {
                 el.remove();
                 if (document.getElementById('game-items').children.length === 0) nextRound();
                 updateStatus();
             }, 300);
         } else {
-            // 不正解の場合
-            el.classList.add('wrong'); // 赤く震える
-            
-            // ★ここが修正点：一度でも間違えたら、確実にリストに追加する
-            // 既にリストにあるか確認して重複を防ぐ
+            el.classList.add('wrong');
             const alreadyInWrong = wrongQueue.some(w => w.name === item.name && w.category === item.category);
             if (!alreadyInWrong) {
                 wrongQueue.push(item);
             }
-            
-            // アニメーションクラスは外すが、要素は消さない（正解するまで消えない）
             setTimeout(() => el.classList.remove('wrong'), 400);
         }
     }
@@ -574,7 +630,6 @@
         document.getElementById('progress-bar').style.width = `${(current/total)*100}%`;
     }
 
-    // 終了判定
     function finishGame() {
         showScreen('screen-result');
         const title = document.getElementById('result-msg');
@@ -587,18 +642,15 @@
             sub.innerText = "素晴らしい！すべての分類が完了しました。";
             retryBtn.style.display = "none";
         } else {
-            title.innerText = "復習モード突入🔥";
+            title.innerText = "もう間違えんなよ湖雪🔥";
             title.style.color = "var(--wrong)";
             sub.innerText = `${wrongQueue.length} 個の間違いを記録しました。\nここからは全問正解するまで終わりません！`;
             retryBtn.style.display = "inline-block";
         }
     }
 
-    // 復習モード開始
     function startReview() {
-        // 間違えた問題リストを次のゲームキューにセット
         gameQueue = shuffle([...wrongQueue]);
-        // 間違いリストは空にする（今回の復習ラウンドで間違えたらまた追加される）
         wrongQueue = [];
         allItemsCount = gameQueue.length;
         
@@ -612,7 +664,7 @@
         return arr.sort(() => Math.random() - 0.5);
     }
 
-    // === 編集機能 ===
+    // === 編集・管理機能 ===
     function toggleEdit() {
         const editScreen = document.getElementById('screen-edit');
         if (editScreen.classList.contains('active')) {
@@ -634,12 +686,16 @@
         });
         document.getElementById('edit-title-group').style.display = 'none';
         document.getElementById('edit-content-group').style.display = 'none';
+        document.getElementById('btn-del-subject').style.display = 'none'; // 削除ボタン隠す
     }
 
     function addNewSubject() {
         const name = document.getElementById('edit-new-subject').value.trim();
         if(!name) return;
-        if(!appData[name]) appData[name] = {};
+        if(!appData[name]) {
+            appData[name] = {};
+            updateAccessLog(name); // 作成時も最新にする
+        }
         saveData();
         document.getElementById('edit-new-subject').value = "";
         refreshEditSubjects();
@@ -648,12 +704,31 @@
 
     function onEditSubjectChange() {
         const subj = document.getElementById('edit-subject-select').value;
-        if (!subj) return;
+        const delBtn = document.getElementById('btn-del-subject');
+        
+        if (!subj) {
+            delBtn.style.display = 'none';
+            return;
+        }
+
+        delBtn.style.display = 'block'; // 削除ボタン表示
         
         document.getElementById('edit-current-subject').innerText = subj;
         document.getElementById('edit-title-group').style.display = 'block';
         document.getElementById('edit-content-group').style.display = 'none';
         refreshEditTitles(subj);
+    }
+
+    // ★追加：科目の削除
+    function deleteSelectedSubject() {
+        const subj = document.getElementById('edit-subject-select').value;
+        if (!subj) return;
+        
+        if (confirm(`本当に科目「${subj}」を削除しますか？\n中の問題もすべて消えます。`)) {
+            delete appData[subj];
+            saveData();
+            refreshEditSubjects();
+        }
     }
 
     function refreshEditTitles(subj) {
@@ -666,6 +741,7 @@
             opt.innerText = t;
             sel.appendChild(opt);
         });
+        document.getElementById('btn-del-title').style.display = 'none';
     }
 
     function addNewTitle() {
@@ -673,7 +749,10 @@
         const name = document.getElementById('edit-new-title').value.trim();
         if(!name || !subj) return;
         
-        if(!appData[subj][name]) appData[subj][name] = {};
+        if(!appData[subj][name]) {
+            appData[subj][name] = {};
+            updateAccessLog(`${subj}__${name}`); // 作成時も最新に
+        }
         saveData();
         document.getElementById('edit-new-title').value = "";
         refreshEditTitles(subj);
@@ -683,11 +762,33 @@
     function onEditTitleChange() {
         const subj = document.getElementById('edit-subject-select').value;
         const title = document.getElementById('edit-title-select').value;
-        if(!title) return;
+        const delBtn = document.getElementById('btn-del-title');
+
+        if(!title) {
+            delBtn.style.display = 'none';
+            return;
+        }
+
+        delBtn.style.display = 'block'; // 削除ボタン表示
 
         document.getElementById('edit-current-title').innerText = title;
         document.getElementById('edit-content-group').style.display = 'block';
         refreshEditContentList(subj, title);
+    }
+
+    // ★追加：タイトルの削除
+    function deleteSelectedTitle() {
+        const subj = document.getElementById('edit-subject-select').value;
+        const title = document.getElementById('edit-title-select').value;
+        if (!subj || !title) return;
+
+        if (confirm(`本当にタイトル「${title}」を削除しますか？`)) {
+            delete appData[subj][title];
+            saveData();
+            // タイトルがなくなっても科目自体は残す
+            refreshEditTitles(subj);
+            document.getElementById('edit-content-group').style.display = 'none';
+        }
     }
 
     function addProblemContent() {
