@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ST階層別分類マスター</title>
+    <title>ST階層別分類マスター（自主学習用）</title>
     <style>
         :root {
             --primary: #2c3e50;
@@ -22,7 +22,7 @@
             color: var(--text);
             display: flex;
             justify-content: center;
-            height: 100vh; /* 全画面固定 */
+            height: 100vh;
             overflow: hidden;
         }
 
@@ -70,7 +70,7 @@
         /* 画面共通設定 */
         .screen {
             flex: 1;
-            display: none; /* JSで切り替え */
+            display: none;
             flex-direction: column;
             overflow-y: auto;
             padding: 20px;
@@ -80,7 +80,7 @@
             display: flex;
         }
 
-        /* メニューリスト（科目・タイトル選択用） */
+        /* メニューリスト */
         .menu-list {
             display: grid;
             gap: 15px;
@@ -115,7 +115,7 @@
             padding-bottom: 10px;
         }
 
-        /* --- ゲーム画面（旧作と同じ） --- */
+        /* ゲーム画面 */
         .game-layout {
             display: flex;
             flex-direction: column;
@@ -199,7 +199,14 @@
 
         .item-card:hover { transform: translateY(-2px); }
         .item-card.correct { transform: scale(0); opacity: 0; }
-        .item-card.wrong { background: var(--wrong); color: white; border-color: var(--wrong); animation: shake 0.4s; }
+        
+        /* 間違えたときのアニメーション */
+        .item-card.wrong { 
+            background: var(--wrong); 
+            color: white; 
+            border-color: var(--wrong); 
+            animation: shake 0.4s; 
+        }
 
         .progress-bar {
             background: #eee;
@@ -214,10 +221,7 @@
             transition: 0.3s;
         }
 
-        /* --- 編集画面 --- */
-        .edit-container {
-            padding: 10px;
-        }
+        /* 編集画面 */
         .form-group {
             background: #f8f9fa;
             padding: 15px;
@@ -269,7 +273,7 @@
 <div class="container">
     <header>
         <button class="header-btn" id="back-btn" onclick="goBack()" style="visibility:hidden;">← 戻る</button>
-        <div class="header-title" id="header-title">ST階層別分類マスター</div>
+        <div class="header-title" id="header-title">ST分類マスター</div>
         <button class="header-btn" onclick="toggleEdit()">作問</button>
     </header>
 
@@ -307,14 +311,14 @@
     </div>
 
     <div id="screen-edit" class="screen">
-        <h2 class="section-title">問題の作成・編集</h2>
+        <h2 class="section-title">問題の作成</h2>
 
         <div class="form-group">
             <label class="form-label">① 科目を選択または新規作成</label>
             <select id="edit-subject-select" class="select-box" onchange="onEditSubjectChange()">
                 <option value="">-- 科目を選択 --</option>
             </select>
-            <input type="text" id="edit-new-subject" class="input-box" placeholder="新しい科目名を入力（例：解剖学）">
+            <input type="text" id="edit-new-subject" class="input-box" placeholder="新しい科目名（例：解剖学）">
             <button class="btn-primary" onclick="addNewSubject()">科目を追加</button>
         </div>
 
@@ -324,7 +328,7 @@
             <select id="edit-title-select" class="select-box" onchange="onEditTitleChange()">
                 <option value="">-- タイトルを選択 --</option>
             </select>
-            <input type="text" id="edit-new-title" class="input-box" placeholder="新しいタイトルを入力（例：脳の機能）">
+            <input type="text" id="edit-new-title" class="input-box" placeholder="新しいタイトル（例：脳の機能）">
             <button class="btn-primary" onclick="addNewTitle()">タイトルを追加</button>
         </div>
 
@@ -344,39 +348,17 @@
             <label class="form-label">登録済みの大枠リスト</label>
             <ul id="edit-registered-list" style="padding-left:20px; font-size:0.9rem;"></ul>
         </div>
-
-        <div class="form-group">
-            <label class="form-label">データ管理</label>
-            <button class="btn-primary" style="background:#7f8c8d; margin-bottom:10px;" onclick="exportData()">データを書き出し（コピー）</button>
-            <button class="btn-primary" style="background:#7f8c8d;" onclick="importData()">データを読み込み（貼り付け）</button>
-        </div>
     </div>
 
 </div>
 
 <script>
     // === データ構造 ===
-    // data = {
-    //   "科目名": {
-    //      "タイトル名": {
-    //          "大枠A": ["要素1", "要素2"],
-    //          "大枠B": ["要素3"]
-    //      }
-    //   }
-    // }
-    
     const defaultData = {
         "練習用": {
             "例題：生き物": {
                 "果物": ["りんご", "みかん", "バナナ"],
                 "動物": ["いぬ", "ねこ", "うさぎ"]
-            }
-        },
-        "基礎医学": {
-            "脳の機能局在": {
-                "前頭葉": ["ブローカ野", "一次運動野", "意欲"],
-                "側頭葉": ["ウェルニッケ野", "一次聴覚野", "海馬"],
-                "後頭葉": ["一次視覚野", "鳥距溝"]
             }
         }
     };
@@ -388,7 +370,7 @@
     // ゲーム用変数
     let activeCategory = null;
     let gameQueue = [];
-    let wrongQueue = [];
+    let wrongQueue = []; // ここに間違えた問題が溜まります
     let allItemsCount = 0;
     const CHUNK_SIZE = 6;
 
@@ -416,7 +398,6 @@
         document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
         document.getElementById(id).classList.add('active');
         
-        // 戻るボタン制御
         const backBtn = document.getElementById('back-btn');
         if (id === 'screen-subjects') {
             backBtn.style.visibility = 'hidden';
@@ -435,7 +416,7 @@
         else goSubjects();
     }
 
-    // 1. 科目一覧表示
+    // 1. 科目一覧
     function goSubjects() {
         currentSubject = null;
         currentTitle = null;
@@ -452,7 +433,7 @@
         showScreen('screen-subjects');
     }
 
-    // 2. タイトル一覧表示
+    // 2. タイトル一覧
     function goTitles(subj) {
         currentSubject = subj;
         document.getElementById('selected-subject-name').innerText = subj;
@@ -476,22 +457,21 @@
         showScreen('screen-titles');
     }
 
-    // 3. ゲーム初期化
+    // 3. ゲーム開始
     function initGame(subj, title) {
         currentSubject = subj;
         currentTitle = title;
         document.getElementById('header-title').innerText = title;
 
         const problemSet = appData[subj][title];
-        
-        // データ整形
         let items = [];
         for (const [cat, list] of Object.entries(problemSet)) {
             list.forEach(item => items.push({name: item, category: cat}));
         }
 
+        // 初期化：すべての問題をシャッフルしてセット
         gameQueue = shuffle(items);
-        wrongQueue = [];
+        wrongQueue = []; // 間違いリストをリセット
         allItemsCount = items.length;
         activeCategory = null;
 
@@ -506,15 +486,12 @@
             catArea.appendChild(btn);
         });
 
-        // アイテムエリアクリア
         document.getElementById('game-items').innerHTML = "";
-        
         showScreen('screen-game');
         updateInstruction();
         nextRound();
     }
 
-    // カテゴリ選択
     function selectCategory(cat, btn) {
         document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
@@ -533,10 +510,8 @@
         }
     }
 
-    // ゲーム進行
     function nextRound() {
         const container = document.getElementById('game-items');
-        // まだ画面にアイテムがあれば追加しない
         if (container.children.length > 0) return;
 
         if (gameQueue.length === 0) {
@@ -555,6 +530,7 @@
         updateStatus();
     }
 
+    // ★重要：解答チェックロジック★
     function checkAnswer(item, el) {
         if (!activeCategory) {
             alert("先にカテゴリを選択してください");
@@ -562,23 +538,30 @@
         }
 
         if (item.category === activeCategory) {
-            // 正解
+            // 正解の場合
             el.classList.add('correct');
             const activeBtn = document.querySelector('.cat-btn.active');
             activeBtn.classList.add('flash');
             setTimeout(() => activeBtn.classList.remove('flash'), 300);
 
+            // アニメーション後に消す
             setTimeout(() => {
                 el.remove();
                 if (document.getElementById('game-items').children.length === 0) nextRound();
                 updateStatus();
             }, 300);
         } else {
-            // 不正解
-            el.classList.add('wrong');
-            if (!wrongQueue.some(w => w.name === item.name && w.category === item.category)) {
+            // 不正解の場合
+            el.classList.add('wrong'); // 赤く震える
+            
+            // ★ここが修正点：一度でも間違えたら、確実にリストに追加する
+            // 既にリストにあるか確認して重複を防ぐ
+            const alreadyInWrong = wrongQueue.some(w => w.name === item.name && w.category === item.category);
+            if (!alreadyInWrong) {
                 wrongQueue.push(item);
             }
+            
+            // アニメーションクラスは外すが、要素は消さない（正解するまで消えない）
             setTimeout(() => el.classList.remove('wrong'), 400);
         }
     }
@@ -586,11 +569,12 @@
     function updateStatus() {
         const remaining = gameQueue.length + document.getElementById('game-items').children.length;
         document.getElementById('game-status').innerText = `残り: ${remaining}`;
-        const total = allItemsCount; // 近似
+        const total = allItemsCount;
         const current = total - remaining;
         document.getElementById('progress-bar').style.width = `${(current/total)*100}%`;
     }
 
+    // 終了判定
     function finishGame() {
         showScreen('screen-result');
         const title = document.getElementById('result-msg');
@@ -603,20 +587,24 @@
             sub.innerText = "素晴らしい！すべての分類が完了しました。";
             retryBtn.style.display = "none";
         } else {
-            title.innerText = "復習が必要です🔥";
+            title.innerText = "復習モード突入🔥";
             title.style.color = "var(--wrong)";
-            sub.innerText = `間違いが ${wrongQueue.length} 個ありました。\n全問正解するまで終わりません！`;
+            sub.innerText = `${wrongQueue.length} 個の間違いを記録しました。\nここからは全問正解するまで終わりません！`;
             retryBtn.style.display = "inline-block";
         }
     }
 
+    // 復習モード開始
     function startReview() {
-        // 復習セットアップ
+        // 間違えた問題リストを次のゲームキューにセット
         gameQueue = shuffle([...wrongQueue]);
+        // 間違いリストは空にする（今回の復習ラウンドで間違えたらまた追加される）
         wrongQueue = [];
-        // 画面上のカテゴリなどはそのまま利用
+        allItemsCount = gameQueue.length;
+        
         document.getElementById('game-items').innerHTML = "";
         showScreen('screen-game');
+        updateInstruction();
         nextRound();
     }
 
@@ -635,7 +623,6 @@
         }
     }
 
-    // 編集：科目関連
     function refreshEditSubjects() {
         const sel = document.getElementById('edit-subject-select');
         sel.innerHTML = '<option value="">-- 科目を選択 --</option>';
@@ -669,7 +656,6 @@
         refreshEditTitles(subj);
     }
 
-    // 編集：タイトル関連
     function refreshEditTitles(subj) {
         const sel = document.getElementById('edit-title-select');
         sel.innerHTML = '<option value="">-- タイトルを選択 --</option>';
@@ -704,7 +690,6 @@
         refreshEditContentList(subj, title);
     }
 
-    // 編集：コンテンツ関連
     function addProblemContent() {
         const subj = document.getElementById('edit-subject-select').value;
         const title = document.getElementById('edit-title-select').value;
@@ -725,7 +710,7 @@
         document.getElementById('edit-cat-name').value = "";
         document.getElementById('edit-cat-items').value = "";
         refreshEditContentList(subj, title);
-        alert("保存しました！");
+        alert("保存しました");
     }
 
     function refreshEditContentList(subj, title) {
@@ -745,26 +730,6 @@
             delete appData[subj][title][cat];
             saveData();
             refreshEditContentList(subj, title);
-        }
-    }
-
-    // 編集：インポート・エクスポート
-    function exportData() {
-        const str = JSON.stringify(appData);
-        navigator.clipboard.writeText(str).then(() => alert("データをコピーしました。学生に送ってください。"));
-    }
-
-    function importData() {
-        const str = prompt("データを貼り付けてください");
-        if(str) {
-            try {
-                appData = JSON.parse(str);
-                saveData();
-                alert("データを読み込みました");
-                refreshEditSubjects();
-            } catch(e) {
-                alert("データ形式が正しくありません");
-            }
         }
     }
 
