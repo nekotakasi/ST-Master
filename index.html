@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>分類マスター</title>
+    <title>ST階層別分類マスター（バックアップ機能付）</title>
     <style>
         :root {
             --primary: #2c3e50;
@@ -285,6 +285,20 @@
             flex: 1; /* ボタンを横並びにするため */
         }
 
+        /* バックアップエリア */
+        .backup-area {
+            background: #34495e;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 30px;
+        }
+        .backup-text {
+            font-size: 0.85rem;
+            color: #bdc3c7;
+            margin-bottom: 10px;
+        }
+
         @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: 1; opacity: 1; } }
         @keyframes shake { 0%,100%{transform:translateX(0)} 25%,75%{transform:translateX(-5px)} 50%{transform:translateX(5px)} }
 
@@ -295,7 +309,7 @@
 <div class="container">
     <header>
         <button class="header-btn" id="back-btn" onclick="goBack()" style="visibility:hidden;">← 戻る</button>
-        <div class="header-title" id="header-title">分類マスター</div>
+        <div class="header-title" id="header-title">ST階層別分類マスター</div>
         <button class="header-btn" onclick="toggleEdit()">作問</button>
     </header>
 
@@ -379,6 +393,18 @@
             <label class="form-label">登録済みの大枠リスト</label>
             <ul id="edit-registered-list" style="padding-left:20px; font-size:0.9rem;"></ul>
         </div>
+
+        <div class="backup-area">
+            <label class="form-label" style="color:white;">💾 データのバックアップ</label>
+            <p class="backup-text">
+                スマホの故障やブラウザの履歴削除に備えて、データを保存しておきましょう。<br>
+                「コピー」した文字を、メモ帳やLINE Keepなどに貼り付けて保存してください。
+            </p>
+            <div style="display:flex; gap:10px;">
+                <button class="btn-primary" style="background:#7f8c8d; border:1px solid white;" onclick="exportBackup()">全データをコピー</button>
+                <button class="btn-primary" style="background:#7f8c8d; border:1px solid white;" onclick="importBackup()">データを復元</button>
+            </div>
+        </div>
     </div>
 
 </div>
@@ -395,7 +421,7 @@
     };
 
     let appData = {};
-    let accessLog = {}; // { "SubjectName": 12345678, "Subject__Title": 12345678 }
+    let accessLog = {}; // 履歴順管理用
 
     let currentSubject = null;
     let currentTitle = null;
@@ -421,7 +447,6 @@
             appData = JSON.parse(JSON.stringify(defaultData));
         }
 
-        // アクセス履歴の読み込み
         const logJson = localStorage.getItem('st_access_log');
         if (logJson) {
             try { accessLog = JSON.parse(logJson); } catch(e) { accessLog = {}; }
@@ -430,11 +455,12 @@
 
     function saveData() {
         localStorage.setItem('st_hier_data', JSON.stringify(appData));
+        localStorage.setItem('st_access_log', JSON.stringify(accessLog));
     }
 
     function updateAccessLog(key) {
         accessLog[key] = Date.now();
-        localStorage.setItem('st_access_log', JSON.stringify(accessLog));
+        saveData();
     }
 
     // === 画面遷移 ===
@@ -445,7 +471,7 @@
         const backBtn = document.getElementById('back-btn');
         if (id === 'screen-subjects') {
             backBtn.style.visibility = 'hidden';
-            document.getElementById('header-title').innerText = "分類マスター";
+            document.getElementById('header-title').innerText = "ST階層別分類マスター";
         } else {
             backBtn.style.visibility = 'visible';
         }
@@ -460,18 +486,17 @@
         else goSubjects();
     }
 
-    // 1. 科目一覧（履歴順ソート適用）
+    // 1. 科目一覧（履歴順ソート）
     function goSubjects() {
         currentSubject = null;
         currentTitle = null;
         const list = document.getElementById('subject-list');
         list.innerHTML = "";
         
-        // ソート処理
         const sortedSubjects = Object.keys(appData).sort((a, b) => {
             const timeA = accessLog[a] || 0;
             const timeB = accessLog[b] || 0;
-            return timeB - timeA; // 降順（新しい順）
+            return timeB - timeA;
         });
 
         sortedSubjects.forEach(subj => {
@@ -479,7 +504,7 @@
             btn.className = 'menu-btn';
             btn.innerText = subj;
             btn.onclick = () => {
-                updateAccessLog(subj); // アクセス日時更新
+                updateAccessLog(subj);
                 goTitles(subj);
             };
             list.appendChild(btn);
@@ -487,7 +512,7 @@
         showScreen('screen-subjects');
     }
 
-    // 2. タイトル一覧（履歴順ソート適用）
+    // 2. タイトル一覧（履歴順ソート）
     function goTitles(subj) {
         currentSubject = subj;
         document.getElementById('selected-subject-name').innerText = subj;
@@ -500,7 +525,6 @@
             list.innerHTML = "<p style='text-align:center; width:100%; color:#888;'>まだ問題がありません。<br>右上の「作問」から作成してください。</p>";
         }
 
-        // ソート処理（キー: 科目名__タイトル名 で管理）
         const sortedTitles = Object.keys(titlesObj).sort((a, b) => {
             const keyA = `${subj}__${a}`;
             const keyB = `${subj}__${b}`;
@@ -514,7 +538,7 @@
             btn.className = 'menu-btn';
             btn.innerText = title;
             btn.onclick = () => {
-                updateAccessLog(`${subj}__${title}`); // アクセス日時更新
+                updateAccessLog(`${subj}__${title}`);
                 initGame(subj, title);
             };
             list.appendChild(btn);
@@ -642,7 +666,7 @@
             sub.innerText = "素晴らしい！すべての分類が完了しました。";
             retryBtn.style.display = "none";
         } else {
-            title.innerText = "もう間違えんなよ湖雪🔥";
+            title.innerText = "復習モード突入🔥";
             title.style.color = "var(--wrong)";
             sub.innerText = `${wrongQueue.length} 個の間違いを記録しました。\nここからは全問正解するまで終わりません！`;
             retryBtn.style.display = "inline-block";
@@ -686,7 +710,7 @@
         });
         document.getElementById('edit-title-group').style.display = 'none';
         document.getElementById('edit-content-group').style.display = 'none';
-        document.getElementById('btn-del-subject').style.display = 'none'; // 削除ボタン隠す
+        document.getElementById('btn-del-subject').style.display = 'none';
     }
 
     function addNewSubject() {
@@ -694,7 +718,7 @@
         if(!name) return;
         if(!appData[name]) {
             appData[name] = {};
-            updateAccessLog(name); // 作成時も最新にする
+            updateAccessLog(name);
         }
         saveData();
         document.getElementById('edit-new-subject').value = "";
@@ -710,8 +734,7 @@
             delBtn.style.display = 'none';
             return;
         }
-
-        delBtn.style.display = 'block'; // 削除ボタン表示
+        delBtn.style.display = 'block';
         
         document.getElementById('edit-current-subject').innerText = subj;
         document.getElementById('edit-title-group').style.display = 'block';
@@ -719,7 +742,6 @@
         refreshEditTitles(subj);
     }
 
-    // ★追加：科目の削除
     function deleteSelectedSubject() {
         const subj = document.getElementById('edit-subject-select').value;
         if (!subj) return;
@@ -751,7 +773,7 @@
         
         if(!appData[subj][name]) {
             appData[subj][name] = {};
-            updateAccessLog(`${subj}__${name}`); // 作成時も最新に
+            updateAccessLog(`${subj}__${name}`);
         }
         saveData();
         document.getElementById('edit-new-title').value = "";
@@ -768,15 +790,13 @@
             delBtn.style.display = 'none';
             return;
         }
-
-        delBtn.style.display = 'block'; // 削除ボタン表示
+        delBtn.style.display = 'block';
 
         document.getElementById('edit-current-title').innerText = title;
         document.getElementById('edit-content-group').style.display = 'block';
         refreshEditContentList(subj, title);
     }
 
-    // ★追加：タイトルの削除
     function deleteSelectedTitle() {
         const subj = document.getElementById('edit-subject-select').value;
         const title = document.getElementById('edit-title-select').value;
@@ -785,7 +805,6 @@
         if (confirm(`本当にタイトル「${title}」を削除しますか？`)) {
             delete appData[subj][title];
             saveData();
-            // タイトルがなくなっても科目自体は残す
             refreshEditTitles(subj);
             document.getElementById('edit-content-group').style.display = 'none';
         }
@@ -831,6 +850,45 @@
             delete appData[subj][title][cat];
             saveData();
             refreshEditContentList(subj, title);
+        }
+    }
+
+    // === バックアップ機能 ===
+    function exportBackup() {
+        const backupObj = {
+            data: appData,
+            log: accessLog // 履歴順も保存
+        };
+        const json = JSON.stringify(backupObj);
+        
+        navigator.clipboard.writeText(json).then(() => {
+            alert("全データをコピーしました！\n\n【次の手順】\n1. メモ帳やLINE Keepなどを開く\n2. 「貼り付け」して保存する\n\nこれでバックアップ完了です。");
+        }).catch(err => {
+            prompt("以下の文字をすべてコピーして保存してください", json);
+        });
+    }
+
+    function importBackup() {
+        const json = prompt("バックアップした文字データをここに貼り付けてください");
+        if(!json) return;
+        
+        try {
+            const parsed = JSON.parse(json);
+            
+            // 旧データ形式と新データ形式の両対応
+            if (parsed.data && parsed.log) {
+                appData = parsed.data;
+                accessLog = parsed.log;
+            } else {
+                appData = parsed; // 古い形式の場合
+            }
+            
+            saveData();
+            alert("データを復元しました！");
+            refreshEditSubjects();
+            goSubjects();
+        } catch(e) {
+            alert("データの形式が正しくありません。\nコピーした文字が途中で切れていないか確認してください。");
         }
     }
 
