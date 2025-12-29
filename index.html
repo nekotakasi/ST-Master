@@ -3,473 +3,665 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ST国試 高速マスター</title>
+    <title>ST分類マスター（編集機能付き）</title>
     <style>
-        /* === デザイン設定 (CSS) === */
         :root {
-            --primary: #0056b3;
-            --accent: #e7f1ff;
-            --correct: #28a745;
-            --wrong: #dc3545;
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --selected: #f1c40f;
+            --correct: #27ae60;
+            --wrong: #e74c3c;
+            --bg: #ecf0f1;
             --text: #333;
-            --bg: #f4f4f9;
         }
 
         body {
-            font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+            font-family: "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
             background-color: var(--bg);
-            color: var(--text);
             margin: 0;
-            padding: 0;
             display: flex;
             justify-content: center;
             min-height: 100vh;
+            color: var(--text);
         }
 
         .container {
             width: 100%;
-            max-width: 600px;
+            max-width: 800px;
             background: white;
-            padding: 20px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            min-height: 100vh;
             display: flex;
             flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
             position: relative;
         }
 
-        h1, h2 {
-            text-align: center;
-            color: var(--primary);
-        }
-
-        /* ホーム画面 */
-        .menu-grid {
-            display: grid;
-            gap: 15px;
-            margin-top: 20px;
-        }
-
-        .menu-btn {
-            background: white;
-            border: 2px solid var(--primary);
-            color: var(--primary);
-            padding: 20px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-
-        .menu-btn:hover {
+        /* ヘッダー */
+        header {
+            padding: 10px 15px;
             background: var(--primary);
             color: white;
+            text-align: center;
+            flex-shrink: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        /* クイズ画面 */
-        #quiz-section, #result-section {
-            display: none;
-            flex-grow: 1;
-            flex-direction: column;
+        .header-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .edit-toggle-btn {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid white;
+            color: white;
+            padding: 5px 10px;
+            font-size: 0.8rem;
+            border-radius: 4px;
+            cursor: pointer;
         }
 
         .status-bar {
+            background: #eee;
+            padding: 5px 15px;
             display: flex;
             justify-content: space-between;
             font-size: 0.9rem;
-            color: #666;
-            margin-bottom: 10px;
+            border-bottom: 1px solid #ddd;
         }
 
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: #ddd;
-            border-radius: 4px;
-            margin-bottom: 20px;
+        /* ゲームエリア */
+        .game-area {
+            display: flex;
+            flex: 1;
             overflow: hidden;
+            flex-direction: column;
         }
 
-        .progress-fill {
-            height: 100%;
-            background: var(--primary);
-            width: 0%;
-            transition: width 0.3s;
+        @media (min-width: 600px) {
+            .game-area { flex-direction: row; }
         }
 
-        .question-box {
-            text-align: center;
-            margin-bottom: 20px;
-            font-size: 1.2rem;
-            font-weight: bold;
-        }
-
-        .question-img {
-            max-width: 100%;
-            height: auto;
-            max-height: 300px;
-            object-fit: contain;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            border: 1px solid #ccc;
-            display: none;
-        }
-
-        .options-grid {
+        /* 左側：カテゴリ（大枠）エリア */
+        .category-area {
+            flex: 1;
+            background: #f8f9fa;
+            padding: 10px;
+            overflow-y: auto;
+            border-bottom: 2px solid #ddd;
             display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
             gap: 10px;
-            grid-template-columns: 1fr 1fr; /* 2列表示 */
+            align-content: start;
         }
 
-        .option-btn {
-            padding: 15px;
-            border: 2px solid #eee;
+        @media (min-width: 600px) {
+            .category-area {
+                flex: 0 0 35%;
+                border-bottom: none;
+                border-right: 2px solid #ddd;
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .category-btn {
             background: white;
+            border: 2px solid #bdc3c7;
             border-radius: 8px;
-            font-size: 1rem;
+            padding: 15px;
+            font-weight: bold;
+            font-size: 0.95rem;
             cursor: pointer;
             transition: 0.2s;
-            text-align: center;
-            font-weight: bold;
+            position: relative;
         }
 
-        .option-btn:hover {
-            background: var(--accent);
+        .category-btn.active {
+            background: var(--primary);
+            color: white;
             border-color: var(--primary);
+            transform: scale(1.02);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
 
-        .option-btn.correct {
-            background-color: #d4edda;
-            border-color: var(--correct);
-            color: #155724;
+        .category-btn.flash-correct {
+            background-color: var(--correct) !important;
+            border-color: var(--correct) !important;
+            color: white;
         }
 
-        .option-btn.wrong {
-            background-color: #f8d7da;
-            border-color: var(--wrong);
-            color: #721c24;
+        /* 右側：要素エリア */
+        .items-area {
+            flex: 1.5;
+            padding: 20px;
+            background: white;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
+
+        .items-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .item-card {
+            background: white;
+            border: 2px solid var(--accent);
+            color: var(--accent);
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: 0.2s;
+            animation: popIn 0.3s ease;
+        }
+
+        .item-card:hover { transform: translateY(-2px); }
+        .item-card.correct-anim { transform: scale(0); opacity: 0; transition: 0.3s; }
+        .item-card.wrong-anim { background: var(--wrong); color: white; border-color: var(--wrong); animation: shake 0.4s ease; }
 
         /* 結果画面 */
-        .result-score {
-            font-size: 1.5rem;
+        #result-screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
             text-align: center;
-            margin: 20px 0;
-            font-weight: bold;
+            padding: 20px;
         }
 
-        .review-badge {
-            display: inline-block;
-            background: var(--wrong);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 0.8rem;
+        /* === 編集画面のデザイン === */
+        #edit-screen {
+            display: none; /* 初期状態は非表示 */
+            flex-direction: column;
+            padding: 20px;
+            background: white;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .edit-section {
+            margin-bottom: 30px;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+            background: #fdfdfd;
+        }
+
+        .edit-label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+            color: var(--primary);
+        }
+
+        .input-text {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
             margin-bottom: 10px;
         }
 
-        .action-btn {
-            margin-top: 20px;
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 15px;
-            font-size: 1.2rem;
-            border-radius: 8px;
-            cursor: pointer;
+        .input-area {
             width: 100%;
-            font-weight: bold;
-        }
-        
-        .action-btn.retry {
-            background: #e67e22; /* 復習色はオレンジ */
+            height: 100px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+            font-family: monospace;
         }
 
-        footer {
-            text-align: center;
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn-danger {
+            background: var(--wrong);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
             font-size: 0.8rem;
-            color: #888;
-            margin-top: auto;
-            padding-top: 20px;
+        }
+
+        .existing-list {
+            list-style: none;
+            padding: 0;
+            margin-top: 10px;
+        }
+
+        .existing-item {
+            background: #eee;
+            margin-bottom: 5px;
+            padding: 10px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .data-io-area {
+            background: #333;
+            color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        /* アニメーション */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25%, 75% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+        }
+        @keyframes popIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .instruction {
+            margin-bottom: 10px;
+            color: #666;
+            font-size: 0.9rem;
+            text-align: center;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div id="home-section">
-        <h1>ST国試<br>高速マスター</h1>
-        <p style="text-align: center;">セクションを選択してください</p>
-        <div class="menu-grid" id="menu-list">
-            </div>
-    </div>
+    <header>
+        <div class="header-title">ST分類マスター</div>
+        <button class="edit-toggle-btn" onclick="toggleEditMode()">作問・編集</button>
+    </header>
 
-    <div id="quiz-section">
+    <div id="play-container" style="display: flex; flex-direction: column; height: 100%;">
         <div class="status-bar">
-            <span id="mode-indicator">学習モード</span>
-            <span id="question-count">1 / 10</span>
+            <span id="mode-display">学習モード</span>
+            <span id="progress-display">残り: 0</span>
         </div>
-        <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
-        
-        <div class="question-box">
-            <img id="q-image" src="" alt="問題画像" class="question-img">
-            <div id="q-text">問題文</div>
-        </div>
-        
-        <div class="options-grid" id="options-list">
+
+        <div id="game-screen" class="game-area">
+            <div class="category-area" id="category-container"></div>
+            <div class="items-area">
+                <p class="instruction" id="instruction-text">左(上)からカテゴリを選んでください</p>
+                <div class="items-grid" id="items-container"></div>
             </div>
+        </div>
+
+        <div id="result-screen">
+            <h1 id="result-title">完了！</h1>
+            <p id="result-msg">分類完了</p>
+            <button class="btn-primary" style="background:var(--wrong); margin-bottom:10px;" id="retry-btn" onclick="startReview()">復習する</button>
+            <button class="btn-primary" onclick="restartGame()">最初から</button>
+        </div>
     </div>
 
-    <div id="result-section">
-        <h2>セッション終了</h2>
-        <div id="result-content" style="text-align: center;">
-            </div>
-        <div id="action-area">
-            </div>
-    </div>
+    <div id="edit-screen">
+        <h2>問題の作成・編集</h2>
+        <p style="font-size:0.9rem; color:#666;">ここで入力した問題は自動で保存されます。</p>
 
-    <footer>
-        &copy; 2024 ST Study App
-    </footer>
+        <div class="edit-section">
+            <label class="edit-label">新しいカテゴリを追加</label>
+            <input type="text" id="new-cat-name" class="input-text" placeholder="カテゴリ名（例：前頭葉）">
+            <label class="edit-label">含まれる要素（改行で区切って入力）</label>
+            <textarea id="new-cat-items" class="input-area" placeholder="ブローカ野&#13;&#10;一次運動野&#13;&#10;意欲低下"></textarea>
+            <button class="btn-primary" onclick="addCategory()">追加する</button>
+        </div>
+
+        <div class="edit-section">
+            <label class="edit-label">現在のカテゴリ一覧</label>
+            <ul class="existing-list" id="edit-list">
+                </ul>
+        </div>
+
+        <div class="data-io-area">
+            <label class="edit-label" style="color:#fff;">【データ配布・共有】</label>
+            <p style="font-size:0.8rem;">先生が作った問題を生徒に配る場合などに使用します。</p>
+            <div class="btn-group">
+                <button class="btn-primary" style="background:#555; border:1px solid #aaa;" onclick="exportData()">データをコピー（書き出し）</button>
+                <button class="btn-primary" style="background:#555; border:1px solid #aaa;" onclick="importData()">データを貼り付け（読み込み）</button>
+            </div>
+        </div>
+
+        <button class="btn-primary" style="width:100%; margin-top:20px;" onclick="toggleEditMode()">学習画面に戻る</button>
+    </div>
 </div>
 
 <script>
-    // === 問題データ ===
-    // 言語聴覚診断学は「視覚の伝導路.jpg」を使用
-    const quizData = {
-        "diagnostics": {
-            title: "言語聴覚診断学",
-            questions: [
-                { q: "図の【1】の名称はどれか。", options: ["視神経", "動眼神経", "嗅神経", "三叉神経"], a: "視神経", img: "視覚の伝導路.jpg" },
-                { q: "図の【2】（交差部）の名称はどれか。", options: ["視交叉", "脳梁", "錐体交叉", "前交連"], a: "視交叉", img: "視覚の伝導路.jpg" },
-                { q: "図の【3】の名称はどれか。", options: ["視索", "視神経", "外側毛帯", "内側毛帯"], a: "視索", img: "視覚の伝導路.jpg" },
-                { q: "図の【4】（中継核）の名称はどれか。", options: ["外側膝状体", "内側膝状体", "赤核", "黒質"], a: "外側膝状体", img: "視覚の伝導路.jpg" },
-                { q: "図の【5】の名称はどれか。", options: ["視放線", "内包", "放線冠", "視床"], a: "視放線", img: "視覚の伝導路.jpg" },
-                { q: "図の【6】（到達部位）の名称はどれか。", options: ["視覚野", "聴覚野", "体性感覚野", "運動野"], a: "視覚野", img: "視覚の伝導路.jpg" }
-            ]
-        },
-        "psychoacoustics": {
-            title: "音響心理学",
-            questions: [
-                { q: "ヒトの可聴域の周波数範囲は？", options: ["20〜20,000Hz", "100〜10,000Hz", "1,000〜4,000Hz", "500〜2,000Hz"], a: "20〜20,000Hz", img: null },
-                { q: "音の高さに最も影響する物理量は？", options: ["周波数", "振幅", "位相", "倍音"], a: "周波数", img: null },
-                { q: "等ラウドネス曲線の単位は？", options: ["phon", "sone", "mel", "dB"], a: "phon", img: null },
-                { q: "カクテルパーティー効果と関連が深いのは？", options: ["両耳聴効果", "マスキング", "ドップラー効果", "ハース効果"], a: "両耳聴効果", img: null },
-                { q: "音圧が10倍になると音圧レベルは何dB上がる？", options: ["20dB", "10dB", "3dB", "6dB"], a: "20dB", img: null },
-                { q: "1000Hz 40dB SPLのラウドネスレベルは？", options: ["40phon", "1sone", "1000mel", "40dB HL"], a: "40phon", img: null },
-                { q: "低音が誤って高音を妨害する現象は？", options: ["上行性マスキング", "下行性マスキング", "中心周波数", "臨界帯域"], a: "上行性マスキング", img: null },
-                { q: "音の3要素に含まれないのは？", options: ["速度", "大きさ", "高さ", "音色"], a: "速度", img: null },
-                { q: "弁別閾が刺激量に比例するという法則は？", options: ["ウェーバーの法則", "フェヒナーの法則", "スティーブンスの法則", "オームの法則"], a: "ウェーバーの法則", img: null },
-                { q: "両耳間時間差(ITD)が有効な周波数帯は？", options: ["低周波数域", "中周波数域", "高周波数域", "全周波数域"], a: "低周波数域", img: null }
-            ]
-        },
-        "anatomy": {
-            title: "解剖学",
-            questions: [
-                { q: "ブローカ野が存在するのは？", options: ["前頭葉", "側頭葉", "頭頂葉", "後頭葉"], a: "前頭葉", img: null },
-                { q: "聴覚野が存在するのは？", options: ["側頭葉", "前頭葉", "頭頂葉", "後頭葉"], a: "側頭葉", img: null },
-                { q: "鼓膜に接している耳小骨は？", options: ["ツチ骨", "キヌタ骨", "アブミ骨", "蝸牛"], a: "ツチ骨", img: null },
-                { q: "顔面神経が支配する筋は？", options: ["口輪筋", "咬筋", "側頭筋", "外側翼突筋"], a: "口輪筋", img: null },
-                { q: "誤嚥防止で喉頭を挙上させる筋は？", options: ["舌骨上筋群", "舌骨下筋群", "咽頭収縮筋", "胸鎖乳突筋"], a: "舌骨上筋群", img: null },
-                { q: "脳幹に含まれないのは？", options: ["小脳", "中脳", "橋", "延髄"], a: "小脳", img: null },
-                { q: "第X脳神経は？", options: ["迷走神経", "舌咽神経", "副神経", "舌下神経"], a: "迷走神経", img: null },
-                { q: "声帯を開く唯一の筋は？", options: ["後輪状披裂筋", "外側輪状披裂筋", "甲状披裂筋", "輪状甲状筋"], a: "後輪状披裂筋", img: null },
-                { q: "海馬の主な機能は？", options: ["記憶の形成", "運動の調整", "視覚処理", "呼吸調節"], a: "記憶の形成", img: null },
-                { q: "錐体路が通る部位は？", options: ["内包後脚", "内包前脚", "外包", "最外包"], a: "内包後脚", img: null }
-            ]
-        }
+    // --- 初期データ（サンプル） ---
+    const defaultData = {
+        "失語症の分類": ["ブローカ失語", "ウェルニッケ失語", "伝導失語", "全失語"],
+        "構音障害": ["痙性構音障害", "弛緩性構音障害", "失調性構音障害", "運動低下性"],
+        "脳神経": ["視神経", "動眼神経", "滑車神経", "三叉神経", "外転神経"]
     };
 
-    // === アプリ状態変数 ===
-    let currentQueue = [];      // 現在出題する問題リスト
-    let wrongQueue = [];        // 間違えた問題リスト（復習用）
-    let currentSectionTitle = "";
-    let currentIndex = 0;
-    let isReviewMode = false;   // 復習モードかどうかのフラグ
-    let isAnswering = false;
+    // --- グローバル変数 ---
+    let problemData = {};
+    let allItems = [];
+    let currentQueue = [];
+    let wrongQueue = [];
+    let activeCategory = null;
+    let isReviewMode = false;
+    const CHUNK_SIZE = 6;
 
-    // 初期化
-    function init() {
-        const menuList = document.getElementById('menu-list');
-        menuList.innerHTML = "";
-        for (const key in quizData) {
-            const btn = document.createElement('button');
-            btn.className = 'menu-btn';
-            btn.innerText = quizData[key].title;
-            btn.onclick = () => startQuiz(key);
-            menuList.appendChild(btn);
-        }
-    }
+    // --- UI要素 ---
+    const ui = {
+        playContainer: document.getElementById('play-container'),
+        editScreen: document.getElementById('edit-screen'),
+        game: document.getElementById('game-screen'),
+        result: document.getElementById('result-screen'),
+        cats: document.getElementById('category-container'),
+        items: document.getElementById('items-container'),
+        progress: document.getElementById('progress-display'),
+        mode: document.getElementById('mode-display'),
+        resTitle: document.getElementById('result-title'),
+        resMsg: document.getElementById('result-msg'),
+        retryBtn: document.getElementById('retry-btn'),
+        instruction: document.getElementById('instruction-text')
+    };
 
-    // クイズ開始（初回）
-    function startQuiz(sectionKey) {
-        currentSectionTitle = quizData[sectionKey].title;
-        // 問題をディープコピーしてシャッフル
-        currentQueue = JSON.parse(JSON.stringify(quizData[sectionKey].questions));
-        currentQueue.sort(() => Math.random() - 0.5);
-        
-        wrongQueue = []; // 間違えたリストをリセット
-        isReviewMode = false;
-        
-        startSessionLoop();
-    }
+    // === システム起動 ===
+    window.onload = function() {
+        loadProblemData();
+        initGame();
+        renderEditList();
+    };
 
-    // セッション開始（初回または復習のループ開始）
-    function startSessionLoop() {
-        currentIndex = 0;
-        
-        // 画面切り替え
-        document.getElementById('home-section').style.display = 'none';
-        document.getElementById('result-section').style.display = 'none';
-        document.getElementById('quiz-section').style.display = 'flex';
-        
-        // モード表示更新
-        const modeText = isReviewMode ? "🔥 復習モード" : "📝 学習モード";
-        document.getElementById('mode-indicator').innerText = modeText;
-        document.getElementById('mode-indicator').style.color = isReviewMode ? "#dc3545" : "#666";
-
-        loadQuestion();
-    }
-
-    // 問題読み込み
-    function loadQuestion() {
-        isAnswering = true;
-        const qData = currentQueue[currentIndex];
-
-        // カウント表示
-        document.getElementById('question-count').innerText = `${currentIndex + 1} / ${currentQueue.length}`;
-        
-        // プログレスバー
-        const progressPercent = (currentIndex / currentQueue.length) * 100;
-        document.getElementById('progress').style.width = `${progressPercent}%`;
-
-        // テキスト設定
-        document.getElementById('q-text').innerText = qData.q;
-
-        // 画像設定
-        const imgElem = document.getElementById('q-image');
-        if (qData.img) {
-            imgElem.src = qData.img;
-            imgElem.style.display = 'block';
-            // 画像読み込みエラー時の処理（プレースホルダー表示）
-            imgElem.onerror = function() {
-                this.style.display = 'none'; 
-            };
+    // データ読み込み（LocalStorage優先）
+    function loadProblemData() {
+        const saved = localStorage.getItem('st_master_data');
+        if (saved) {
+            try {
+                problemData = JSON.parse(saved);
+            } catch(e) {
+                problemData = JSON.parse(JSON.stringify(defaultData));
+            }
         } else {
-            imgElem.style.display = 'none';
+            problemData = JSON.parse(JSON.stringify(defaultData));
+        }
+    }
+
+    // データ保存
+    function saveData() {
+        localStorage.setItem('st_master_data', JSON.stringify(problemData));
+    }
+
+    // === 学習モードのロジック ===
+    function initGame() {
+        // フラット化
+        allItems = [];
+        for (const [cat, list] of Object.entries(problemData)) {
+            list.forEach(itemText => {
+                allItems.push({ name: itemText, category: cat });
+            });
+        }
+        
+        // カテゴリボタン生成
+        ui.cats.innerHTML = "";
+        Object.keys(problemData).forEach(cat => {
+            const btn = document.createElement('div');
+            btn.className = 'category-btn';
+            btn.innerText = cat;
+            btn.onclick = () => selectCategory(cat, btn);
+            ui.cats.appendChild(btn);
+        });
+
+        restartGame();
+    }
+
+    function restartGame() {
+        isReviewMode = false;
+        ui.mode.innerText = "学習モード";
+        ui.mode.style.color = "#333";
+        currentQueue = shuffle([...allItems]);
+        wrongQueue = [];
+        ui.result.style.display = 'none';
+        ui.game.style.display = 'flex';
+        activeCategory = null;
+        updateInstruction();
+        
+        // カテゴリ選択状態リセット
+        document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+
+        nextRound();
+    }
+
+    function nextRound() {
+        // 画面にまだ残っているなら補充しない
+        if (ui.items.children.length > 0) return;
+
+        if (currentQueue.length === 0) {
+            finishGame();
+            return;
         }
 
-        // 選択肢生成
-        const optionsDiv = document.getElementById('options-list');
-        optionsDiv.innerHTML = '';
-        
-        // 選択肢をシャッフル
-        const shuffledOptions = [...qData.options].sort(() => Math.random() - 0.5);
+        const nextBatch = currentQueue.splice(0, CHUNK_SIZE);
+        renderItems(nextBatch);
+        updateStatus();
+    }
 
-        shuffledOptions.forEach(opt => {
-            const btn = document.createElement('button');
-            btn.className = 'option-btn';
-            btn.innerText = opt;
-            btn.onclick = () => checkAnswer(btn, opt, qData.a);
-            optionsDiv.appendChild(btn);
+    function renderItems(list) {
+        ui.items.innerHTML = "";
+        list.forEach(itemObj => {
+            const card = document.createElement('div');
+            card.className = 'item-card';
+            card.innerText = itemObj.name;
+            card.onclick = (e) => handleItemClick(itemObj, e.target);
+            ui.items.appendChild(card);
         });
     }
 
-    // 判定ロジック
-    function checkAnswer(btn, selected, correct) {
-        if (!isAnswering) return;
-        isAnswering = false;
-
-        const allBtns = document.querySelectorAll('.option-btn');
-        const qData = currentQueue[currentIndex];
-
-        if (selected === correct) {
-            btn.classList.add('correct');
-            // 正解時は音を鳴らしても良い（今回は省略）
-        } else {
-            btn.classList.add('wrong');
-            // 間違えた問題をリストに追加（重複しないように管理）
-            // ※ 現在のセッションで同じ問題を複数回追加しないようにする
-            // 今回は単純にキューに追加
-            wrongQueue.push(qData);
-
-            // 正解を表示
-            allBtns.forEach(b => {
-                if (b.innerText === correct) {
-                    b.classList.add('correct');
-                }
-            });
-        }
-
-        // 次へ
-        setTimeout(() => {
-            currentIndex++;
-            if (currentIndex < currentQueue.length) {
-                loadQuestion();
-            } else {
-                showRoundResult();
-            }
-        }, 800); // サクサク進めるよう時間を短縮
+    function selectCategory(catName, btnElement) {
+        const prev = document.querySelector('.category-btn.active');
+        if (prev) prev.classList.remove('active');
+        activeCategory = catName;
+        btnElement.classList.add('active');
+        updateInstruction();
     }
 
-    // ラウンド終了時の判定（重要：高速マスター仕様）
-    function showRoundResult() {
-        document.getElementById('quiz-section').style.display = 'none';
-        document.getElementById('result-section').style.display = 'flex';
+    function updateInstruction() {
+        if (!activeCategory) {
+            ui.instruction.innerText = "カテゴリを選択してください";
+            ui.instruction.style.color = "#666";
+        } else {
+            ui.instruction.innerText = `「${activeCategory}」の要素を選んでください`;
+            ui.instruction.style.color = "var(--primary)";
+            ui.instruction.style.fontWeight = "bold";
+        }
+    }
 
-        const resultContent = document.getElementById('result-content');
-        const actionArea = document.getElementById('action-area');
-        
-        resultContent.innerHTML = '';
-        actionArea.innerHTML = '';
+    function handleItemClick(itemObj, cardElem) {
+        if (!activeCategory) {
+            alert("先にカテゴリを選択してください！");
+            return;
+        }
+
+        if (itemObj.category === activeCategory) {
+            // 正解
+            cardElem.classList.add('correct-anim');
+            const activeBtn = document.querySelector('.category-btn.active');
+            activeBtn.classList.add('flash-correct');
+            setTimeout(() => activeBtn.classList.remove('flash-correct'), 300);
+
+            setTimeout(() => {
+                cardElem.remove();
+                if (ui.items.children.length === 0) nextRound();
+                updateStatus();
+            }, 300);
+        } else {
+            // 不正解
+            cardElem.classList.add('wrong-anim');
+            // 復習リストへ（重複なし）
+            const alreadyInWrong = wrongQueue.some(w => w.name === itemObj.name && w.category === itemObj.category);
+            if (!alreadyInWrong) {
+                wrongQueue.push(itemObj);
+            }
+            setTimeout(() => cardElem.classList.remove('wrong-anim'), 400);
+        }
+    }
+
+    function updateStatus() {
+        const total = currentQueue.length + ui.items.children.length;
+        ui.progress.innerText = `残り: ${total}`;
+    }
+
+    function finishGame() {
+        ui.game.style.display = 'none';
+        ui.result.style.display = 'flex';
 
         if (wrongQueue.length === 0) {
-            // 全問正解（完全クリア）
-            resultContent.innerHTML = `
-                <h3 style="color:var(--correct); font-size:2rem;">完全習得！🎉</h3>
-                <p>このセクションの問題はすべてクリアしました。</p>
-            `;
-            const homeBtn = document.createElement('button');
-            homeBtn.className = 'action-btn';
-            homeBtn.innerText = 'メニューに戻る';
-            homeBtn.onclick = goHome;
-            actionArea.appendChild(homeBtn);
-
+            ui.resTitle.innerText = "完全習得！🎉";
+            ui.resTitle.style.color = "var(--correct)";
+            ui.resMsg.innerText = "すべての分類が完了しました";
+            ui.retryBtn.style.display = 'none';
         } else {
-            // 間違いがある場合（復習誘導）
-            resultContent.innerHTML = `
-                <p class="result-score">残り ${wrongQueue.length} 問</p>
-                <p>間違えた問題が残っています。<br>全問正解するまで終わりません！</p>
-            `;
-            
-            const retryBtn = document.createElement('button');
-            retryBtn.className = 'action-btn retry';
-            retryBtn.innerText = '間違えた問題を復習する';
-            retryBtn.onclick = startReviewRound;
-            actionArea.appendChild(retryBtn);
+            ui.resTitle.innerText = "復習モードへ";
+            ui.resTitle.style.color = "var(--wrong)";
+            ui.resMsg.innerText = `${wrongQueue.length} 個の間違いがありました。\n全問正解するまで終わりません！`;
+            ui.retryBtn.style.display = 'block';
         }
     }
 
-    // 復習ラウンドの開始
-    function startReviewRound() {
+    function startReview() {
         isReviewMode = true;
-        // 間違えた問題リストを次の出題リストに設定
-        currentQueue = [...wrongQueue];
-        // 順番を入れ替える（飽きさせないため）
-        currentQueue.sort(() => Math.random() - 0.5);
-        // 間違えたリストを空にする（今回のラウンドでまた間違えたらここに追加される）
-        wrongQueue = [];
+        ui.mode.innerText = "🔥 復習モード";
+        ui.mode.style.color = "var(--wrong)";
         
-        startSessionLoop();
+        currentQueue = shuffle([...wrongQueue]);
+        wrongQueue = []; // 今回間違えたらまた入る
+        
+        ui.result.style.display = 'none';
+        ui.game.style.display = 'flex';
+        nextRound();
     }
 
-    function goHome() {
-        document.getElementById('result-section').style.display = 'none';
-        document.getElementById('home-section').style.display = 'block';
+    function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
     }
 
-    init();
+    // === 編集・管理機能 ===
+    function toggleEditMode() {
+        if (ui.editScreen.style.display === 'flex') {
+            ui.editScreen.style.display = 'none';
+            ui.playContainer.style.display = 'flex';
+            // 編集内容を反映してリロード
+            initGame();
+        } else {
+            ui.playContainer.style.display = 'none';
+            ui.editScreen.style.display = 'flex';
+            renderEditList();
+        }
+    }
+
+    function addCategory() {
+        const name = document.getElementById('new-cat-name').value.trim();
+        const itemsText = document.getElementById('new-cat-items').value.trim();
+        
+        if (!name || !itemsText) {
+            alert("カテゴリ名と要素を入力してください");
+            return;
+        }
+
+        // 改行で分割してリスト化
+        const items = itemsText.split(/\n/).map(s => s.trim()).filter(s => s !== "");
+        
+        if (items.length === 0) {
+            alert("要素がありません");
+            return;
+        }
+
+        problemData[name] = items;
+        saveData();
+        renderEditList();
+
+        // 入力クリア
+        document.getElementById('new-cat-name').value = "";
+        document.getElementById('new-cat-items').value = "";
+    }
+
+    function deleteCategory(catName) {
+        if (confirm(`カテゴリ「${catName}」を削除しますか？`)) {
+            delete problemData[catName];
+            saveData();
+            renderEditList();
+        }
+    }
+
+    function renderEditList() {
+        const listElem = document.getElementById('edit-list');
+        listElem.innerHTML = "";
+        
+        Object.keys(problemData).forEach(cat => {
+            const li = document.createElement('li');
+            li.className = 'existing-item';
+            li.innerHTML = `
+                <span><b>${cat}</b> (${problemData[cat].length}個)</span>
+                <button class="btn-danger" onclick="deleteCategory('${cat}')">削除</button>
+            `;
+            listElem.appendChild(li);
+        });
+    }
+
+    // === データ共有機能 ===
+    function exportData() {
+        const json = JSON.stringify(problemData);
+        navigator.clipboard.writeText(json).then(() => {
+            alert("現在の問題データをコピーしました！\n学生にLINEやメールで送ってください。");
+        }).catch(() => {
+            prompt("以下のテキストをコピーして配布してください", json);
+        });
+    }
+
+    function importData() {
+        const json = prompt("先生から送られてきたデータをここに貼り付けてください");
+        if (json) {
+            try {
+                const data = JSON.parse(json);
+                if (typeof data === 'object') {
+                    problemData = data;
+                    saveData();
+                    alert("データを読み込みました！");
+                    renderEditList();
+                } else {
+                    alert("データ形式が正しくありません");
+                }
+            } catch(e) {
+                alert("読み込みに失敗しました。データが正しいか確認してください。");
+            }
+        }
+    }
 
 </script>
 
