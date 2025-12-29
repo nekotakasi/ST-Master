@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>分類マスター（バックアップ機能付）</title>
+    <title>分類マスター（苦手分析機能付）</title>
     <style>
         :root {
             --primary: #2c3e50;
@@ -11,7 +11,7 @@
             --accent: #3498db;
             --correct: #27ae60;
             --wrong: #e74c3c;
-            --edit: #f39c12; /* 編集ボタンの色 */
+            --edit: #f39c12;
             --bg: #f5f6fa;
             --text: #2c3e50;
         }
@@ -101,6 +101,10 @@
             transition: 0.2s;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
             position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
 
         .menu-btn:hover {
@@ -116,6 +120,21 @@
             top: 10px;
             right: 10px;
             font-size: 0.8rem;
+        }
+
+        .clear-date {
+            font-size: 0.8rem;
+            color: var(--correct);
+            margin-top: 5px;
+            font-weight: normal;
+            background: #e8f8f5;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .menu-btn:hover .clear-date {
+            background: rgba(255,255,255,0.2);
+            color: white;
         }
 
         .section-title {
@@ -225,6 +244,40 @@
             transition: 0.3s;
         }
 
+        /* 結果画面のランキング */
+        .ranking-area {
+            margin: 20px 0;
+            padding: 15px;
+            background: #fdf2f2;
+            border-radius: 10px;
+            border: 1px solid #f5c6cb;
+            width: 90%;
+            max-width: 400px;
+        }
+        .ranking-title {
+            color: var(--wrong);
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+        }
+        .ranking-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            text-align: left;
+        }
+        .ranking-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px dashed #f5c6cb;
+        }
+        .ranking-rank {
+            font-weight: bold;
+            margin-right: 10px;
+            color: var(--secondary);
+        }
+
         /* 編集画面 */
         .form-group {
             background: #f8f9fa;
@@ -296,7 +349,6 @@
             flex: 1; 
         }
 
-        /* バックアップエリア */
         .backup-area {
             background: #34495e;
             color: white;
@@ -349,9 +401,15 @@
         </div>
     </div>
 
-    <div id="screen-result" class="screen" style="text-align:center; justify-content:center;">
+    <div id="screen-result" class="screen" style="text-align:center; align-items:center; justify-content:center;">
         <h1 id="result-msg">完了！</h1>
         <p id="result-sub">全分類をマスターしました</p>
+
+        <div id="worst-ranking-container" class="ranking-area" style="display:none;">
+            <div class="ranking-title">⚠️ よく間違える要素 TOP3</div>
+            <ul id="worst-list" class="ranking-list"></ul>
+        </div>
+
         <button class="btn-primary" id="retry-btn" onclick="startReview()" style="background:var(--wrong); margin-bottom:10px; display:none;">間違えた問題を復習する</button>
         <button class="btn-primary" onclick="initGame(currentSubject, currentTitle)">もう一度やる</button>
         <button class="btn-primary" onclick="goSubjects()" style="margin-top:10px; background:var(--secondary);">科目一覧に戻る</button>
@@ -368,7 +426,6 @@
                 </select>
                 <button id="btn-del-subject" class="btn-delete-section" style="display:none; max-width:80px;" onclick="deleteSelectedSubject()">削除</button>
             </div>
-            
             <input type="text" id="edit-new-subject" class="input-box" placeholder="新しい科目名（例：解剖学）">
             <button class="btn-primary" onclick="addNewSubject()">科目を追加</button>
         </div>
@@ -376,14 +433,12 @@
         <div class="form-group" id="edit-title-group" style="display:none; border-left: 5px solid var(--accent);">
             <label class="form-label">② タイトルを選択 / 新規作成 / 削除</label>
             <p style="font-size:0.8rem; color:#666;">選択中の科目：<b id="edit-current-subject"></b></p>
-            
             <div style="display:flex; gap:10px; margin-bottom:10px;">
                 <select id="edit-title-select" class="select-box" style="margin-bottom:0;" onchange="onEditTitleChange()">
                     <option value="">-- タイトルを選択 --</option>
                 </select>
                 <button id="btn-del-title" class="btn-delete-section" style="display:none; max-width:80px;" onclick="deleteSelectedTitle()">削除</button>
             </div>
-
             <input type="text" id="edit-new-title" class="input-box" placeholder="新しいタイトル（例：脳の機能）">
             <button class="btn-primary" onclick="addNewTitle()">タイトルを追加</button>
         </div>
@@ -391,15 +446,11 @@
         <div class="form-group" id="edit-content-group" style="display:none; border-left: 5px solid var(--correct);">
             <label class="form-label">③ 分類問題を追加・編集</label>
             <p style="font-size:0.8rem; color:#666;">選択中のタイトル：<b id="edit-current-title"></b></p>
-            
             <label class="form-label">大枠（カテゴリ名）</label>
             <input type="text" id="edit-cat-name" class="input-box" placeholder="例：果物">
-            
             <label class="form-label">要素（改行で区切る）</label>
             <textarea id="edit-cat-items" class="input-box" style="height:100px;" placeholder="例：&#13;&#10;りんご&#13;&#10;みかん"></textarea>
-            
             <button class="btn-primary" onclick="addProblemContent()">この内容で保存（上書き）</button>
-
             <hr style="margin:20px 0; border:0; border-top:1px solid #ddd;">
             <label class="form-label">登録済みの大枠リスト</label>
             <ul id="edit-registered-list" style="padding-left:20px; font-size:0.9rem;"></ul>
@@ -408,8 +459,8 @@
         <div class="backup-area">
             <label class="form-label" style="color:white;">💾 データのバックアップ</label>
             <p class="backup-text">
-                スマホの故障やブラウザの履歴削除に備えて、データを保存しておきましょう。<br>
-                「コピー」した文字を、メモ帳などに貼り付けて保存してください。
+                バックアップには「学習履歴」や「間違い分析データ」も含まれます。<br>
+                定期的にコピーして保存してください。
             </p>
             <div style="display:flex; gap:10px;">
                 <button class="btn-primary" style="background:#7f8c8d; border:1px solid white;" onclick="exportBackup()">全データをコピー</button>
@@ -432,7 +483,9 @@
     };
 
     let appData = {};
-    let accessLog = {};
+    let accessLog = {}; 
+    let completionLog = {}; 
+    let mistakeLog = {}; // ★新機能：間違いカウントログ { "科目__タイトル__要素名": 回数 }
 
     let currentSubject = null;
     let currentTitle = null;
@@ -462,11 +515,23 @@
         if (logJson) {
             try { accessLog = JSON.parse(logJson); } catch(e) { accessLog = {}; }
         }
+
+        const compJson = localStorage.getItem('st_completion_log');
+        if (compJson) {
+            try { completionLog = JSON.parse(compJson); } catch(e) { completionLog = {}; }
+        }
+
+        const misJson = localStorage.getItem('st_mistake_log');
+        if (misJson) {
+            try { mistakeLog = JSON.parse(misJson); } catch(e) { mistakeLog = {}; }
+        }
     }
 
     function saveData() {
         localStorage.setItem('st_hier_data', JSON.stringify(appData));
         localStorage.setItem('st_access_log', JSON.stringify(accessLog));
+        localStorage.setItem('st_completion_log', JSON.stringify(completionLog));
+        localStorage.setItem('st_mistake_log', JSON.stringify(mistakeLog));
     }
 
     function updateAccessLog(key) {
@@ -547,9 +612,21 @@
         sortedTitles.forEach(title => {
             const btn = document.createElement('div');
             btn.className = 'menu-btn';
-            btn.innerText = title;
+            
+            const titleSpan = document.createElement('div');
+            titleSpan.innerText = title;
+            btn.appendChild(titleSpan);
+
+            const key = `${subj}__${title}`;
+            if (completionLog[key]) {
+                const dateDiv = document.createElement('div');
+                dateDiv.className = 'clear-date';
+                dateDiv.innerText = `🏆 最終クリア: ${completionLog[key]}`;
+                btn.appendChild(dateDiv);
+            }
+
             btn.onclick = () => {
-                updateAccessLog(`${subj}__${title}`);
+                updateAccessLog(key);
                 initGame(subj, title);
             };
             list.appendChild(btn);
@@ -649,10 +726,18 @@
             }, 300);
         } else {
             el.classList.add('wrong');
+            
+            // 間違いリストに追加
             const alreadyInWrong = wrongQueue.some(w => w.name === item.name && w.category === item.category);
             if (!alreadyInWrong) {
                 wrongQueue.push(item);
             }
+
+            // ★間違いカウントを加算
+            const mistakeKey = `${currentSubject}__${currentTitle}__${item.name}`;
+            mistakeLog[mistakeKey] = (mistakeLog[mistakeKey] || 0) + 1;
+            saveData();
+
             setTimeout(() => el.classList.remove('wrong'), 400);
         }
     }
@@ -670,17 +755,61 @@
         const title = document.getElementById('result-msg');
         const sub = document.getElementById('result-sub');
         const retryBtn = document.getElementById('retry-btn');
+        const rankingContainer = document.getElementById('worst-ranking-container');
+        const rankingList = document.getElementById('worst-list');
 
         if (wrongQueue.length === 0) {
+            // ★完全習得！日付を保存
+            const today = new Date();
+            const dateStr = `${today.getFullYear()}/${today.getMonth() + 1}/${today.getDate()}`;
+            const key = `${currentSubject}__${currentTitle}`;
+            completionLog[key] = dateStr;
+            saveData();
+
             title.innerText = "完全習得！🎉";
             title.style.color = "var(--correct)";
-            sub.innerText = "素晴らしい！すべての分類が完了しました。";
+            sub.innerText = "学習記録を更新しました。";
             retryBtn.style.display = "none";
+
+            // ★ワースト3の表示処理
+            const prefix = `${currentSubject}__${currentTitle}__`;
+            const mistakes = [];
+            
+            Object.keys(mistakeLog).forEach(k => {
+                if(k.startsWith(prefix)) {
+                    mistakes.push({
+                        name: k.replace(prefix, ''),
+                        count: mistakeLog[k]
+                    });
+                }
+            });
+
+            // 回数が多い順にソートしてトップ3を取得
+            mistakes.sort((a, b) => b.count - a.count);
+            const top3 = mistakes.slice(0, 3);
+
+            if (top3.length > 0 && top3[0].count > 0) {
+                rankingContainer.style.display = "block";
+                rankingList.innerHTML = "";
+                top3.forEach((m, index) => {
+                    const li = document.createElement('li');
+                    li.className = "ranking-item";
+                    li.innerHTML = `
+                        <span><span class="ranking-rank">${index + 1}位</span> ${m.name}</span>
+                        <span>${m.count}回</span>
+                    `;
+                    rankingList.appendChild(li);
+                });
+            } else {
+                rankingContainer.style.display = "none";
+            }
+
         } else {
             title.innerText = "こゆきもう間違えんなよ🔥";
             title.style.color = "var(--wrong)";
-            sub.innerText = `${wrongQueue.length} 個間違えたな。\nここからは全問正解するまで終わりませーん！`;
+            sub.innerText = `${wrongQueue.length} 個間違えたな！\nここからは全問正解するまで終わりませーん！`;
             retryBtn.style.display = "inline-block";
+            rankingContainer.style.display = "none";
         }
     }
 
@@ -864,14 +993,10 @@
         });
     }
 
-    // ★追加された編集機能
     function editCategory(subj, title, cat) {
-        // 入力欄にデータをコピー
         document.getElementById('edit-cat-name').value = cat;
         document.getElementById('edit-cat-items').value = appData[subj][title][cat].join('\n');
-        
-        // ユーザーに通知して入力欄へスクロール
-        alert("上の入力欄にデータを読み込みました。\n内容を修正して「保存」ボタンを押してください。");
+        alert("上の入力欄にデータを読み込みました。\n修正して「保存」してください。");
         document.getElementById('edit-content-group').scrollIntoView({behavior: 'smooth'});
     }
 
@@ -887,7 +1012,9 @@
     function exportBackup() {
         const backupObj = {
             data: appData,
-            log: accessLog
+            log: accessLog,
+            comp: completionLog,
+            mistake: mistakeLog // ★間違いデータもバックアップ
         };
         const json = JSON.stringify(backupObj);
         
@@ -904,9 +1031,11 @@
         
         try {
             const parsed = JSON.parse(json);
-            if (parsed.data && parsed.log) {
+            if (parsed.data) {
                 appData = parsed.data;
-                accessLog = parsed.log;
+                accessLog = parsed.log || {};
+                completionLog = parsed.comp || {};
+                mistakeLog = parsed.mistake || {};
             } else {
                 appData = parsed;
             }
