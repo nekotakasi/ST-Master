@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ST階層別分類マスター（バックアップ機能付）</title>
+    <title>分類マスター（バックアップ機能付）</title>
     <style>
         :root {
             --primary: #2c3e50;
@@ -11,6 +11,7 @@
             --accent: #3498db;
             --correct: #27ae60;
             --wrong: #e74c3c;
+            --edit: #f39c12; /* 編集ボタンの色 */
             --bg: #f5f6fa;
             --text: #2c3e50;
         }
@@ -108,7 +109,6 @@
             transform: translateY(-2px);
         }
         
-        /* 新着バッジ的な演出（直近使用） */
         .menu-btn.recent::after {
             content: "●";
             color: var(--correct);
@@ -275,6 +275,17 @@
             font-size: 0.8rem;
         }
 
+        .btn-edit {
+            background: var(--edit);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-right: 5px;
+        }
+
         .btn-delete-section {
             background: #e74c3c;
             color: white;
@@ -282,7 +293,7 @@
             padding: 10px;
             border-radius: 4px;
             cursor: pointer;
-            flex: 1; /* ボタンを横並びにするため */
+            flex: 1; 
         }
 
         /* バックアップエリア */
@@ -309,7 +320,7 @@
 <div class="container">
     <header>
         <button class="header-btn" id="back-btn" onclick="goBack()" style="visibility:hidden;">← 戻る</button>
-        <div class="header-title" id="header-title">ST階層別分類マスター</div>
+        <div class="header-title" id="header-title">分類マスター</div>
         <button class="header-btn" onclick="toggleEdit()">作問</button>
     </header>
 
@@ -378,7 +389,7 @@
         </div>
 
         <div class="form-group" id="edit-content-group" style="display:none; border-left: 5px solid var(--correct);">
-            <label class="form-label">③ 分類問題を追加</label>
+            <label class="form-label">③ 分類問題を追加・編集</label>
             <p style="font-size:0.8rem; color:#666;">選択中のタイトル：<b id="edit-current-title"></b></p>
             
             <label class="form-label">大枠（カテゴリ名）</label>
@@ -387,7 +398,7 @@
             <label class="form-label">要素（改行で区切る）</label>
             <textarea id="edit-cat-items" class="input-box" style="height:100px;" placeholder="例：&#13;&#10;りんご&#13;&#10;みかん"></textarea>
             
-            <button class="btn-primary" onclick="addProblemContent()">この問題を追加・保存</button>
+            <button class="btn-primary" onclick="addProblemContent()">この内容で保存（上書き）</button>
 
             <hr style="margin:20px 0; border:0; border-top:1px solid #ddd;">
             <label class="form-label">登録済みの大枠リスト</label>
@@ -398,7 +409,7 @@
             <label class="form-label" style="color:white;">💾 データのバックアップ</label>
             <p class="backup-text">
                 スマホの故障やブラウザの履歴削除に備えて、データを保存しておきましょう。<br>
-                「コピー」した文字を、メモ帳やLINE Keepなどに貼り付けて保存してください。
+                「コピー」した文字を、メモ帳などに貼り付けて保存してください。
             </p>
             <div style="display:flex; gap:10px;">
                 <button class="btn-primary" style="background:#7f8c8d; border:1px solid white;" onclick="exportBackup()">全データをコピー</button>
@@ -421,7 +432,7 @@
     };
 
     let appData = {};
-    let accessLog = {}; // 履歴順管理用
+    let accessLog = {};
 
     let currentSubject = null;
     let currentTitle = null;
@@ -471,7 +482,7 @@
         const backBtn = document.getElementById('back-btn');
         if (id === 'screen-subjects') {
             backBtn.style.visibility = 'hidden';
-            document.getElementById('header-title').innerText = "ST階層別分類マスター";
+            document.getElementById('header-title').innerText = "分類マスター";
         } else {
             backBtn.style.visibility = 'visible';
         }
@@ -486,7 +497,7 @@
         else goSubjects();
     }
 
-    // 1. 科目一覧（履歴順ソート）
+    // 1. 科目一覧
     function goSubjects() {
         currentSubject = null;
         currentTitle = null;
@@ -512,7 +523,7 @@
         showScreen('screen-subjects');
     }
 
-    // 2. タイトル一覧（履歴順ソート）
+    // 2. タイトル一覧
     function goTitles(subj) {
         currentSubject = subj;
         document.getElementById('selected-subject-name').innerText = subj;
@@ -839,10 +850,29 @@
         const data = appData[subj][title];
         Object.keys(data).forEach(cat => {
             const li = document.createElement('li');
-            li.innerHTML = `<b>${cat}</b>: ${data[cat].join(", ")} <button class="btn-danger" onclick="deleteCategory('${subj}','${title}','${cat}')">削除</button>`;
-            li.style.marginBottom = "5px";
+            li.innerHTML = `
+                <b>${cat}</b>: ${data[cat].join(", ")} 
+                <div style="margin-top:5px;">
+                    <button class="btn-edit" onclick="editCategory('${subj}','${title}','${cat}')">編集</button>
+                    <button class="btn-danger" onclick="deleteCategory('${subj}','${title}','${cat}')">削除</button>
+                </div>
+            `;
+            li.style.marginBottom = "10px";
+            li.style.borderBottom = "1px solid #eee";
+            li.style.paddingBottom = "10px";
             list.appendChild(li);
         });
+    }
+
+    // ★追加された編集機能
+    function editCategory(subj, title, cat) {
+        // 入力欄にデータをコピー
+        document.getElementById('edit-cat-name').value = cat;
+        document.getElementById('edit-cat-items').value = appData[subj][title][cat].join('\n');
+        
+        // ユーザーに通知して入力欄へスクロール
+        alert("上の入力欄にデータを読み込みました。\n内容を修正して「保存」ボタンを押してください。");
+        document.getElementById('edit-content-group').scrollIntoView({behavior: 'smooth'});
     }
 
     function deleteCategory(subj, title, cat) {
@@ -857,12 +887,12 @@
     function exportBackup() {
         const backupObj = {
             data: appData,
-            log: accessLog // 履歴順も保存
+            log: accessLog
         };
         const json = JSON.stringify(backupObj);
         
         navigator.clipboard.writeText(json).then(() => {
-            alert("全データをコピーしました！\n\n【次の手順】\n1. メモ帳やLINE Keepなどを開く\n2. 「貼り付け」して保存する\n\nこれでバックアップ完了です。");
+            alert("全データをコピーしました！\nメモ帳などに貼り付けて保存してください。");
         }).catch(err => {
             prompt("以下の文字をすべてコピーして保存してください", json);
         });
@@ -874,21 +904,18 @@
         
         try {
             const parsed = JSON.parse(json);
-            
-            // 旧データ形式と新データ形式の両対応
             if (parsed.data && parsed.log) {
                 appData = parsed.data;
                 accessLog = parsed.log;
             } else {
-                appData = parsed; // 古い形式の場合
+                appData = parsed;
             }
-            
             saveData();
             alert("データを復元しました！");
             refreshEditSubjects();
             goSubjects();
         } catch(e) {
-            alert("データの形式が正しくありません。\nコピーした文字が途中で切れていないか確認してください。");
+            alert("データの形式が正しくありません。");
         }
     }
 
