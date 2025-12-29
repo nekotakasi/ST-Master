@@ -295,7 +295,7 @@
 <div class="container">
     <header>
         <button class="header-btn" id="back-btn" onclick="goBack()" style="visibility:hidden;">← 戻る</button>
-        <div class="header-title" id="header-title">ST階層別分類マスター</div>
+        <div class="header-title" id="header-title">分類マスター</div>
         <button class="header-btn" onclick="toggleEdit()">作問</button>
     </header>
 
@@ -445,7 +445,7 @@
         const backBtn = document.getElementById('back-btn');
         if (id === 'screen-subjects') {
             backBtn.style.visibility = 'hidden';
-            document.getElementById('header-title').innerText = "ST階層別分類マスター";
+            document.getElementById('header-title').innerText = "分類マスター";
         } else {
             backBtn.style.visibility = 'visible';
         }
